@@ -1,4 +1,4 @@
-package com.code.snippet.apache.flink;
+package com.code.snippet.apache.flink.kafka;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
