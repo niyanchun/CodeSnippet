@@ -27,37 +27,47 @@ public class KafkaFlinkElastic {
 
         final ParameterTool params = ParameterTool.fromArgs(args);
         final String kafkaBrokers = params.get("brokers", "127.0.0.1:9092");
+        final String kafkaGroup = params.get("group", "test");
+        final boolean fromEarliest = params.getBoolean("earliest", true);
+        final String esHosts = params.get("es", "127.0.0.1");
+
+        final int parallelism = params.getInt("p", 1);
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         // step 1: read data from kafka
-        DataStream<String> dataStream = readFromKafka(env, kafkaBrokers);
+        DataStream<String> dataStream = readFromKafka(env, kafkaBrokers, kafkaGroup, parallelism);
 
         // step 2: write data to es
-        writeToElastic(dataStream);
+        writeToElastic(dataStream, esHosts);
 
         env.execute("KafkaFlinkElastic");
     }
 
-    private static DataStream<String> readFromKafka(StreamExecutionEnvironment env, String brokers) {
+    private static DataStream<String> readFromKafka(StreamExecutionEnvironment env,
+                                                    String brokers,
+                                                    String group,
+                                                    int parallelism) {
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", brokers);
-        properties.setProperty("group.id", "test-group");
+        properties.setProperty("group.id", group);
 
         return env.addSource(
                 new FlinkKafkaConsumer010<>("test", new SimpleStringSchema(), properties)
-                        .setStartFromEarliest());
+                        .setStartFromEarliest())
+                .setParallelism(parallelism);
     }
 
-    private static void writeToElastic(DataStream<String> input) {
+    private static void writeToElastic(DataStream<String> input,
+                                       String esHosts) {
         List<HttpHost> httpHosts = new ArrayList<>();
-        httpHosts.add(new HttpHost("127.0.0.1", 9200, "http"));
+        httpHosts.add(new HttpHost(esHosts, 9200, "http"));
 
         ElasticsearchSink.Builder<String> esSinkBuilder = new ElasticsearchSink.Builder<>(httpHosts,
                 new ElasticsearchSinkFunction<String>() {
 
                     private IndexRequest createIndexRequest(String element) {
-                        Map<String, Object> json = new HashMap<>();
+                        Map<String, Object> json = new HashMap<>(1);
                         json.put("message", element);
 
                         return Requests.indexRequest()
@@ -78,7 +88,7 @@ public class KafkaFlinkElastic {
             restClientBuilder.setMaxRetryTimeoutMillis(30000);
         });
 
-        esSinkBuilder.setBulkFlushMaxActions(1);
+        esSinkBuilder.setBulkFlushMaxActions(500);
 
         // register failure handler
         esSinkBuilder.setFailureHandler((action, failure, restStatusCode, indexer) ->
