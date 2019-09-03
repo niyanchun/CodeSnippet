@@ -1,4 +1,4 @@
-package com.code.snippet.language.lambda;
+package com.niyanchun.language.lambda;
 
 import java.util.Arrays;
 import java.util.List;

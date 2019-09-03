@@ -1,4 +1,4 @@
-package com.code.snippet.apache.kafka.admin;
+package com.niyanchun.apache.kafka.admin;
 
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.producer.ProducerConfig;

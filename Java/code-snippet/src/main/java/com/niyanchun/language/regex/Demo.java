@@ -1,4 +1,4 @@
-package com.code.snippet.language.regex;
+package com.niyanchun.language.regex;
 
 import org.apache.commons.lang3.StringUtils;
 

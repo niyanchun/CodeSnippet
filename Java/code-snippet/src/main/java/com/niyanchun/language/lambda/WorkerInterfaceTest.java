@@ -1,4 +1,4 @@
-package com.code.snippet.language.lambda;
+package com.niyanchun.language.lambda;
 
 /**
  * @description: Test for worker interface.

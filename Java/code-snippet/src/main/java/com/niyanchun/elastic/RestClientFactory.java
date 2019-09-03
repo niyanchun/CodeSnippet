@@ -1,4 +1,4 @@
-package com.code.snippet.elastic;
+package com.niyanchun.elastic;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
