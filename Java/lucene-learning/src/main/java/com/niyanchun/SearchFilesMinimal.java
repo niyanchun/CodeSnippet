@@ -39,7 +39,7 @@ public class SearchFilesMinimal {
         // 创建查询语句解析对象
         QueryParser queryParser = new QueryParser(searchField, analyzer);
         while (true) {
-            System.out.println("Enter query: ");
+            System.out.println("\nEnter query: ");
 
             String input = in.readLine();
             if (input == null) {
