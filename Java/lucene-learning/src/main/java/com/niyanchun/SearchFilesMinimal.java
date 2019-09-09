@@ -27,11 +27,16 @@ public class SearchFilesMinimal {
         // 搜索的字段
         final String searchField = "contents";
 
+        // 从索引目录读取索引信息
         IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
+        // 创建索引查询对象
         IndexSearcher searcher = new IndexSearcher(indexReader);
+        // 使用标准分词器
         Analyzer analyzer = new StandardAnalyzer();
 
+        // 从终端获取查询语句
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        // 创建查询语句解析对象
         QueryParser queryParser = new QueryParser(searchField, analyzer);
         while (true) {
             System.out.println("Enter query: ");
@@ -46,9 +51,10 @@ public class SearchFilesMinimal {
                 break;
             }
 
+            // 解析用户输入的查询语句：build query
             Query query = queryParser.parse(input);
             System.out.println("searching for: " + query.toString(searchField));
-
+            // 查询
             TopDocs results = searcher.search(query, 10);
             ScoreDoc[] hits = results.scoreDocs;
             if (results.totalHits.value == 0) {
@@ -56,6 +62,7 @@ public class SearchFilesMinimal {
                 continue;
             }
 
+            // 输出匹配到的结果
             System.out.println(results.totalHits.value + " results matched: ");
             for (ScoreDoc hit : hits) {
                 Document doc = searcher.doc(hit.doc);
