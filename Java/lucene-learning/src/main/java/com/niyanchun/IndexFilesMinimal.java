@@ -23,9 +23,9 @@ public class IndexFilesMinimal {
 
     public static void main(String[] args) throws Exception {
         // 原数据存放路径
-        final String docsPath = "/Volumes/Files/Git/allan/github/CodeSnippet/Java/lucene-learning/data/poems";
+        final String docsPath = "data/poems";
         // 索引保存目录
-        final String indexPath = "/Volumes/Files/Git/allan/github/CodeSnippet/Java/lucene-learning/indices/poems-index";
+        final String indexPath = "indices/poems-index";
 
         final Path docDir = Paths.get(docsPath);
         Directory indexDir = FSDirectory.open(Paths.get(indexPath));

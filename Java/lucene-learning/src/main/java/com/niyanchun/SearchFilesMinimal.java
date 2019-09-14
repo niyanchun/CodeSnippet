@@ -24,14 +24,12 @@ public class SearchFilesMinimal {
 
     public static void main(String[] args) throws Exception {
         // 索引保存目录
-        final String indexPath = "/Volumes/Files/Git/allan/github/CodeSnippet/Java/lucene-learning/indices/poems-index";
+        final String indexPath = "indices/poems-index";
         // 搜索的字段
         final String searchField = "contents";
 
         // 从索引目录读取索引信息
         IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
-        Terms terms =  indexReader.getTermVector(1, "contents");
-        System.out.println("terms vector: " + terms );
         // 创建索引查询对象
         IndexSearcher searcher = new IndexSearcher(indexReader);
         // 使用标准分词器
