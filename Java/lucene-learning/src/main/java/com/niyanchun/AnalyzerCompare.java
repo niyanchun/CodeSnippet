@@ -25,7 +25,6 @@ public class AnalyzerCompare {
             new WhitespaceAnalyzer(),
             new KeywordAnalyzer(),
             new SimpleAnalyzer(),
-            new StandardAnalyzer(),
             // 标准分词器会处理停用词，但默认其停用词库为空，这里我们使用英文的停用词
             new StandardAnalyzer(EnglishAnalyzer.getDefaultStopSet())
     };
