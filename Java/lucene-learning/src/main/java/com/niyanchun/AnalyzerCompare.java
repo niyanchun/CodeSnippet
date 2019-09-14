@@ -9,6 +9,7 @@ import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Compare Lucene Internal Analyzers.
@@ -16,10 +17,6 @@ import java.io.IOException;
  * @author NiYanchun
  **/
 public class AnalyzerCompare {
-    private static final String[] CONTENTS = new String[]{
-            "The quick brown fox jumped over the lazy dog",
-            "You can contact me with the email niyanchun@outlook.com"
-    };
 
     private static final Analyzer[] ANALYZERS = new Analyzer[]{
             new WhitespaceAnalyzer(),
@@ -30,13 +27,10 @@ public class AnalyzerCompare {
     };
 
     public static void main(String[] args) throws Exception {
-
-        for (String content : CONTENTS) {
-            System.out.println("content: " + content);
-            for (Analyzer analyzer : ANALYZERS) {
-                showTerms(analyzer, content);
-            }
-            System.out.println();
+        String content = "My name is Ni Yanchun, I'm 28 years old. You can contact me with the email niyanchun@outlook.com";
+        System.out.println("原始数据:\n" + content + "\n\n分析结果：");
+        for (Analyzer analyzer : ANALYZERS) {
+            showTerms(analyzer, content);
         }
     }
 
@@ -44,17 +38,20 @@ public class AnalyzerCompare {
 
         try (TokenStream tokenStream = analyzer.tokenStream("content", content)) {
             StringBuilder sb = new StringBuilder();
+            AtomicInteger tokenNum = new AtomicInteger();
             tokenStream.reset();
             while (tokenStream.incrementToken()) {
                 tokenStream.reflectWith(((attClass, key, value) -> {
                     if ("term".equals(key)) {
-                        sb.append(value).append(", ");
+                        tokenNum.getAndIncrement();
+                        sb.append("\"").append(value).append("\", ");
                     }
                 }));
             }
             tokenStream.end();
 
-            System.out.println(analyzer.getClass().getSimpleName() + ": ["
+            System.out.println(analyzer.getClass().getSimpleName() + ":\n"
+                    + tokenNum + " tokens: ["
                     + sb.toString().substring(0, sb.toString().length() - 2) + "]");
         }
     }
