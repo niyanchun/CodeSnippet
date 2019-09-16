@@ -1,6 +1,7 @@
 package com.niyanchun;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -30,7 +31,7 @@ public class TermVectorShow {
         IndexWriter writer = new IndexWriter(indexDir, iwc);
 
         String sentence = "a good student, a gifted student";
-        // 保存词向量的所有相关信息
+        // 默认不会保存词向量，这里我们通过一些设置来保存词向量的相关信息
         FieldType fieldType = new FieldType();
         fieldType.setStored(true);
         fieldType.setStoreTermVectors(true);
