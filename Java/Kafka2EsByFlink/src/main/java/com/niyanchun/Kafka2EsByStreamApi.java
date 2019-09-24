@@ -42,7 +42,7 @@ public class Kafka2EsByStreamApi {
         stream.addSink(getEsSink());
 
         env.execute("");
-    }]
+    }
 
     private static ElasticsearchSink<String> getEsSink() {
         List<HttpHost> httpHosts = new ArrayList<>();
