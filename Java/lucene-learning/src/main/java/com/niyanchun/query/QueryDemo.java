@@ -26,67 +26,80 @@ public class QueryDemo {
     public static void main(String[] args) throws Exception {
         // 索引保存目录
         final String indexPath = "indices/poems-index";
-
         // 读取索引
         IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
         IndexSearcher searcher = new IndexSearcher(indexReader);
 
-        // Term Query
+        // TermQuery
+        termQueryDemo(searcher);
+
+        // BooleanQuery
+        booleanQueryDemo(searcher);
+
+        // PhraseQuery
+        phraseQueryDemo(searcher);
+        phraseQueryWithSlopDemo(searcher);
+
+        // MultiPhraseQuery
+        multiPhraseQueryDemo(searcher);
+
+        // PrefixQuery
+        prefixQueryDemo(searcher);
+
+        // WildcardQuery
+        wildcardQueryDemo(searcher);
+
+        // RegexpQuery
+        regexpQueryDemo(searcher);
+
+        // FuzzyQuery
+        fuzzyQueryDemo(searcher);
+
+        // TermRangeQuery
+        termRangeQueryDemo(searcher);
+
+        // ConstantScoreQuery
+        constantScoreQueryDemo(searcher);
+    }
+
+    private static void termQueryDemo(IndexSearcher searcher) throws IOException {
         System.out.println("TermQuery, search for 'death':");
-        resultPrint(searcher, searcher.search(getTermQuery("death"), 10));
-        // Boolean Query
-        System.out.println("\nBooleanQuery, must contain 'love' but absolutely not 'seek': ");
-        resultPrint(searcher, searcher.search(getBooleanQuery(), 10));
-        // Phrase Query
-        System.out.println("\nPhraseQuery, search 'love that'");
-        resultPrint(searcher, searcher.search(getPhraseQuery(), 10));
-        System.out.println("\nPhraseQuery with slop: 'love <slop> never");
-        resultPrint(searcher, searcher.search(getPhraseQueryWithSlop(), 10));
-        System.out.println("\nMultiPhraseQuery");
-        resultPrint(searcher, searcher.search(getMultiPhraseQuery(), 10));
-        System.out.println("\nPrefixQuery, search terms begin with 'co'");
-        resultPrint(searcher, searcher.search(getPrefixQuery(), 10));
-        System.out.println("\nWildcardQuery, search terms 'har*'");
-        resultPrint(searcher, searcher.search(getWildcardQuery(), 10));
-        System.out.println("\nRegexpQuery, search regexp 'l[ao]*'");
-        resultPrint(searcher, searcher.search(getRegexpQuery(), 10));
-        System.out.println("\nFuzzyQuery, search 'remembre'");
-        resultPrint(searcher, searcher.search(getFuzzyQuery(), 10));
-        System.out.println("\nTermRangeQuery, search term between 'loa' and 'lov'");
-        resultPrint(searcher, searcher.search(getTermRangeQuery(), 10));
-        System.out.println("\nConstantScoreQuery:");
-        resultPrint(searcher, searcher.search(getConstantScoreQuery(), 10));
+        TermQuery termQuery = new TermQuery(new Term(SEARCH_FIELD, "death"));
+
+        resultPrint(searcher, termQuery);
     }
 
-    private static Query getTermQuery(String keyword) {
-        return new TermQuery(new Term(SEARCH_FIELD, keyword));
-    }
-
-    private static Query getBooleanQuery() {
+    private static void booleanQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("BooleanQuery, must contain 'love' but absolutely not 'seek': ");
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(getTermQuery("love"), BooleanClause.Occur.MUST);
-        builder.add(getTermQuery("seek"), BooleanClause.Occur.MUST_NOT);
+        builder.add(new TermQuery(new Term(SEARCH_FIELD, "love")), BooleanClause.Occur.MUST);
+        builder.add(new TermQuery(new Term(SEARCH_FIELD, "seek")), BooleanClause.Occur.MUST_NOT);
+        BooleanQuery booleanQuery = builder.build();
 
-        return builder.build();
+        resultPrint(searcher, booleanQuery);
     }
 
-    private static Query getPhraseQuery() {
-        System.out.println("Phrase Query search");
+    private static void phraseQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("\nPhraseQuery, search 'love that'");
 
-        // 通过以下的构造方式还可以搜索不同的term，即不同的字段
-        //PhraseQuery.Builder builder = new PhraseQuery.Builder();
-        //builder.add(new Term(SEARCH_FIELD, "love"));
-        //builder.add(new Term(SEARCH_FIELD, "that"));
-        //builder.build();
+        PhraseQuery.Builder builder = new PhraseQuery.Builder();
+        builder.add(new Term(SEARCH_FIELD, "love"));
+        builder.add(new Term(SEARCH_FIELD, "that"));
+        PhraseQuery phraseQueryWithSlop = builder.build();
 
-        return new PhraseQuery(SEARCH_FIELD, "love", "that");
+        resultPrint(searcher, phraseQueryWithSlop);
     }
 
-    private static Query getPhraseQueryWithSlop() {
-        return new PhraseQuery(1, SEARCH_FIELD, "love", "never");
+    private static void phraseQueryWithSlopDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("PhraseQuery with slop: 'love <slop> never");
+        PhraseQuery phraseQueryWithSlop = new PhraseQuery(1, SEARCH_FIELD, "love", "never");
+
+        resultPrint(searcher, phraseQueryWithSlop);
     }
 
-    private static Query getMultiPhraseQuery() {
+    private static void multiPhraseQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("MultiPhraseQuery:");
+
         // On Death: I know not what into my ear
         // Fog: It sits looking over harbor and city
         // 以下的查询可以匹配 "know harbor, know not, over harbor, over not" 4种情况
@@ -99,37 +112,58 @@ public class QueryDemo {
         termArray2[1] = new Term(SEARCH_FIELD, "not");
         builder.add(termArray1);
         builder.add(termArray2);
+        MultiPhraseQuery multiPhraseQuery = builder.build();
 
-        return builder.build();
+        resultPrint(searcher, multiPhraseQuery);
     }
 
-    private static Query getPrefixQuery() {
-        return new PrefixQuery(new Term(SEARCH_FIELD, "co"));
+    private static void prefixQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("PrefixQuery, search terms begin with 'co'");
+        PrefixQuery prefixQuery = new PrefixQuery(new Term(SEARCH_FIELD, "co"));
+
+        resultPrint(searcher, prefixQuery);
     }
 
-    private static Query getWildcardQuery() {
-        return new WildcardQuery(new Term(SEARCH_FIELD, "har*"));
+    private static void wildcardQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("WildcardQuery, search terms 'har*'");
+        WildcardQuery wildcardQuery = new WildcardQuery(new Term(SEARCH_FIELD, "har*"));
+
+        resultPrint(searcher, wildcardQuery);
     }
 
-    private static Query getRegexpQuery() {
-        return new RegexpQuery(new Term(SEARCH_FIELD, "l[ai].*"));
+    private static void regexpQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("RegexpQuery, search regexp 'l[ao]*'");
+        RegexpQuery regexpQuery = new RegexpQuery(new Term(SEARCH_FIELD, "l[ai].*"));
+
+        resultPrint(searcher, regexpQuery);
     }
 
-    private static Query getFuzzyQuery() {
-        return new FuzzyQuery(new Term(SEARCH_FIELD, "remembre"), 1);
+    private static void fuzzyQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("FuzzyQuery, search 'remembre'");
+        FuzzyQuery fuzzyQuery = new FuzzyQuery(new Term(SEARCH_FIELD, "remembre"), 1);
+
+        resultPrint(searcher, fuzzyQuery);
     }
 
-    private static Query getTermRangeQuery() {
-        return new TermRangeQuery(SEARCH_FIELD, new BytesRef("loa"), new BytesRef("lov"), true, false);
+    private static void termRangeQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("TermRangeQuery, search term between 'loa' and 'lov'");
+        TermRangeQuery termRangeQuery = new TermRangeQuery(SEARCH_FIELD, new BytesRef("loa"), new BytesRef("lov"), true, false);
+
+        resultPrint(searcher, termRangeQuery);
     }
 
-    private static Query getConstantScoreQuery() {
-        return new ConstantScoreQuery(getFuzzyQuery());
+    private static void constantScoreQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("ConstantScoreQuery:");
+        ConstantScoreQuery constantScoreQuery = new ConstantScoreQuery(
+                new FuzzyQuery(new Term(SEARCH_FIELD, "remembre"), 1));
+
+        resultPrint(searcher, constantScoreQuery);
     }
 
-    private static void resultPrint(IndexSearcher searcher, TopDocs topDocs) throws IOException {
+    private static void resultPrint(IndexSearcher searcher, Query query) throws IOException {
+        TopDocs topDocs = searcher.search(query, 10);
         if (topDocs.totalHits.value == 0) {
-            System.out.println("not found!");
+            System.out.println("not found!\n");
             return;
         }
 
@@ -140,5 +174,6 @@ public class QueryDemo {
             Document doc = searcher.doc(hit.doc);
             System.out.println("doc=" + hit.doc + " score=" + hit.score + " file: " + doc.get("path"));
         }
+        System.out.println();
     }
 }
