@@ -1,4 +1,4 @@
-package com.niyanchun;
+package com.niyanchun.query;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
