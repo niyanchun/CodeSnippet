@@ -32,6 +32,7 @@ public class PointQueryDemo {
         iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         IndexWriter writer = new IndexWriter(indexDir, iwc);
 
+        // 向索引中插入10条document，每个document包含一个field字段，字段值是0~10之间的数字
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             Field pointField = new IntPoint("field", i);
@@ -40,9 +41,11 @@ public class PointQueryDemo {
         }
         writer.close();
 
+        // 查询
         IndexReader indexReader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
         IndexSearcher searcher = new IndexSearcher(indexReader);
 
+        // 查询field字段值在[5, 8]范围内的文档
         Query query = IntPoint.newRangeQuery("field", 5, 8);
         TopDocs topDocs = searcher.search(query, 10);
 
@@ -55,7 +58,6 @@ public class PointQueryDemo {
 
         System.out.println(topDocs.totalHits.value + " result(s) matched: ");
         for (ScoreDoc hit : hits) {
-            Document doc = searcher.doc(hit.doc);
             System.out.println("doc=" + hit.doc + " score=" + hit.score);
         }
     }

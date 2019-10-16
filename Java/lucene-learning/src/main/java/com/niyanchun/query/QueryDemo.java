@@ -60,6 +60,9 @@ public class QueryDemo {
 
         // ConstantScoreQuery
         constantScoreQueryDemo(searcher);
+
+        // MatchAllDocsQuery
+        matchAllDocsQueryDemo(searcher);
     }
 
     private static void termQueryDemo(IndexSearcher searcher) throws IOException {
@@ -158,6 +161,13 @@ public class QueryDemo {
                 new FuzzyQuery(new Term(SEARCH_FIELD, "remembre"), 1));
 
         resultPrint(searcher, constantScoreQuery);
+    }
+
+    private static void matchAllDocsQueryDemo(IndexSearcher searcher) throws IOException {
+        System.out.println("MatchAllDocsQueryDemo:");
+        MatchAllDocsQuery matchAllDocsQuery = new MatchAllDocsQuery();
+
+        resultPrint(searcher, matchAllDocsQuery);
     }
 
     private static void resultPrint(IndexSearcher searcher, Query query) throws IOException {
