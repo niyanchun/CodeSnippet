@@ -1,0 +1,33 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1beta1
+kind: Elasticsearch
+metadata:
+  name: agree-eck-small-size
+spec:
+  nodeSets:
+  - name: default
+    count: 3
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          image: registry.agree.com.cn/agree/elasticsearch:6.8.3
+          env:
+          - name: ES_JAVA_OPTS
+            value: "-Xms1g -Xmx1g"
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: standard
+    config:
+      node.master: true
+      node.data: true
+      node.ingest: true
+      node.ml: true
+      xpack.ml.enabled: false
+      node.store.allow_mmap: false

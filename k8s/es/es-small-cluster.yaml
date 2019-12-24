@@ -1,0 +1,148 @@
+---
+# ------------------- Service for cluster internal communication ------------------- #
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-cluster
+spec:
+  clusterIP: None
+  selector:
+    app: es-cluster
+  ports:
+  - name: transport
+    port: 9300
+
+---
+# ------------ Service for outside client communication(LoadBalancer) ------------ #
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-loadbalancer
+spec:
+  selector:
+    app: es-cluster
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 9200
+  type: LoadBalancer
+
+---
+
+# ------------ Service for outside client communication(NodePort) ------------ #
+
+apiVersion: v1
+kind: Service
+metadata:  
+  name: elasticsearch-nodeport
+spec:
+  selector:    
+    app: es-cluster
+  type: NodePort
+  ports:  
+  - name: http
+    port: 80   # 集群中其它容器访问的端口
+    targetPort: 9200  # 后端pod中container暴露的端口
+    nodePort: 30092   # 节点暴露的端口
+    protocol: TCP
+
+---
+
+# ------------------------------ ConfigMap  ------------------------------ #
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: es-config
+data:
+  elasticsearch.yml: |
+    cluster.name: k8s-es-cluster
+    network.host: "0.0.0.0"
+    bootstrap.memory_lock: true
+    discovery.zen.ping.unicast.hosts: elasticsearch-cluster
+    discovery.zen.minimum_master_nodes: 2
+    xpack.security.enabled: false
+    xpack.monitoring.enabled: false
+    node.attr.data: hot
+  ES_JAVA_OPTS: -Xms2048m -Xmx2048m
+---
+
+# ------------------------------ StatefulSet  ------------------------------ #
+
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: esnode
+spec:
+  serviceName: elasticsearch
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: es-cluster
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+      - name: init-sysctl
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+      containers:
+      - name: elasticsearch
+        resources:
+            requests:
+                memory: 4Gi
+        securityContext:
+          privileged: true
+          runAsUser: 1000
+          capabilities:
+            add:
+            - IPC_LOCK
+            - SYS_RESOURCE
+        image: registry.agree.com.cn/agree/elasticsearch:6.8.3
+        env:
+        - name: ES_JAVA_OPTS
+          valueFrom:
+              configMapKeyRef:
+                  name: es-config
+                  key: ES_JAVA_OPTS
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /_cluster/health?local=true
+            port: 9200
+          initialDelaySeconds: 5
+        ports:
+        - containerPort: 9200
+          name: es-http
+        - containerPort: 9300
+          name: es-transport
+        volumeMounts:
+        - name: es-data
+          mountPath: /usr/share/elasticsearch/data
+        - name: elasticsearch-config
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          subPath: elasticsearch.yml
+      volumes:
+        - name: elasticsearch-config
+          configMap:
+            name: es-config
+            items:
+              - key: elasticsearch.yml
+                path: elasticsearch.yml
+  volumeClaimTemplates:
+  - metadata:
+      name: es-data
+    spec:
+      storageClassName: local-storage
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 400Gi

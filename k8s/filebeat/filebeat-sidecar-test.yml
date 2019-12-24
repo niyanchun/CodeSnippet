@@ -1,0 +1,68 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: filebeat-test
+  namespace: log
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: filebeat-test
+    spec:
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:6.8.3
+        args: [ "-c", "/etc/filebeat.yml" ]
+        volumeMounts:
+        - name: app-logs
+          mountPath: /log
+        - name: filebeat-config
+          mountPath: /etc/filebeat.yml
+          readOnly: true
+          subPath: filebeat.yml
+      - name: app
+        image: docker.elastic.co/beats/filebeat:6.8.3
+        args: [ "-c", "/usr/share/filebeat/filebeat.yml" ]
+        volumeMounts:
+        - name: app-logs
+          mountPath: /usr/share/filebeat/logs
+      volumes:
+      - name: app-logs
+        emptyDir: {}
+      - name: filebeat-config
+        configMap:
+          defaultMode: 0644
+          name: filebeat-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: filebeat-test
+  namespace: log
+  labels:
+    app: filebeat-test
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    name: http
+  selector:
+    run: filebeat-test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-config
+  namespace: log
+data:
+  filebeat.yml: |
+    filebeat.inputs:
+    - type: log
+      paths:
+        - "/log/*"
+        - "/log/usermange/common/*"
+    output.elasticsearch:
+      hosts: ["10.8.4.42:9200"]
+    logging.level: info
+    logging.to_files: true

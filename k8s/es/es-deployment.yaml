@@ -1,0 +1,153 @@
+---
+# ------------------- Service for cluster internal communication ------------------- #
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-cluster
+  namespace: logkeeper
+spec:
+  clusterIP: None
+  selector:
+    app: es-cluster
+  ports:
+    - name: transport
+      port: 9300
+
+---
+# ------------ Service for outside client communication(LoadBalancer) ------------ #
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-loadbalancer
+  namespace: logkeeper
+spec:
+  selector:
+    app: es-cluster
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+  type: LoadBalancer
+
+---
+# ------------ Service for outside client communication(NodePort) ------------ #
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-nodeport
+  namespace: logkeeper
+spec:
+  selector:
+    app: es-cluster
+  type: NodePort
+  ports:
+    - name: http
+      port: 80 # 集群中其它容器访问的端口
+      targetPort: 9200 # 后端pod中container暴露的端口
+      nodePort: 30091 # 节点暴露的端口
+      protocol: TCP
+
+---
+# ------------------------------ ConfigMap(master)  ------------------------------ #
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: es-master-config
+  namespace: logkeeper
+data:
+  elasticsearch.yml: |
+    cluster.name: k8s-es-cluster
+    network.host: "0.0.0.0"
+    bootstrap.memory_lock: true
+    discovery.zen.ping.unicast.hosts: elasticsearch-cluster
+    discovery.zen.minimum_master_nodes: 2
+    xpack.security.enabled: false
+    xpack.monitoring.enabled: false
+    node.master: true
+    node.data: false
+    node.ingest: false
+    thread_pool.write.queue_size: 2000
+  ES_JAVA_OPTS: -Xms1g -Xmx1g
+
+---
+# ------------------------------ Deployment(es master node)  ------------------------------ #
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: es-master
+  namespace: logkeeper
+spec:
+  replicas: 3 # master节点个数不要修改
+  selector:
+    matchLabels:
+      app: es-cluster
+      role: master
+  template:
+    metadata:
+      labels:
+        app: es-cluster
+        role: master
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: init-sysctl
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          command: ["sh", "-c", "sysctl -w vm.max_map_count=262144 && ulimit -l unlimited"]
+      containers:
+        - name: elasticsearch
+          resources:
+            limits:
+              memory: 2Gi # 生产环境建议不低于8Gi
+            requests:
+              memory: 2Gi # 生产环境建议不低于8Gi
+          securityContext:
+            privileged: true
+            runAsUser: 1000
+            capabilities:
+              add:
+                - IPC_LOCK
+                - SYS_RESOURCE
+          image: harbor.k8s/agree/elasticsearch:6.8.3
+          env:
+            - name: ES_JAVA_OPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: es-master-config
+                  key: ES_JAVA_OPTS
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /_cluster/health?local=true
+              port: 9200
+            initialDelaySeconds: 5
+          ports:
+            - containerPort: 9200
+              name: es-http
+            - containerPort: 9300
+              name: es-transport
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+            - name: es-master-config
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              subPath: elasticsearch.yml
+      volumes:
+        - name: es-master-config
+          configMap:
+            name: es-master-config
+            items:
+              - key: elasticsearch.yml
+                path: elasticsearch.yml
+        - name: es-data
+          emptyDir: {}
+
+---

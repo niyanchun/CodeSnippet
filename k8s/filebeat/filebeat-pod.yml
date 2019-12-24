@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: filebeat-pod
+  labels:
+    app: filebeat-nyc-test
+spec:
+  containers:
+  - name: filebeat
+    image: registry.agree.com.cn/agree/filebeat:6.8.3
+  initContainers:
+  - name: init-logkeeper-apiserver
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'until nslookup apiserver; do echo waiting for apiserver; sleep 2; done;']

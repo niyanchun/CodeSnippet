@@ -1,0 +1,39 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1beta1
+kind: Elasticsearch
+metadata:
+  name: agree-eck-big-size
+spec:
+  nodeSets:
+  - name: masters
+    count: 3
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          image: registry.agree.com.cn/agree/elasticsearch:6.8.3
+          env:
+          - name: ES_JAVA_OPTS
+            value: "-Xms1g -Xmx1g"
+    config:
+      node.master: true
+      node.data: false
+      node.ingest: false
+      node.ml: false
+      xpack.ml.enabled: true
+      cluster.remote.connect: false
+  - name: data
+    count: 3
+    podTemplate:
+      spec:
+        containers:
+        - name: elasticsearch
+          image: registry.agree.com.cn/agree/elasticsearch:6.8.3
+          env:
+          - name: ES_JAVA_OPTS
+            value: "-Xms1g -Xmx1g"
+    config:
+      node.master: false
+      node.data: true
+      node.ingest: true
+      node.ml: true
+      cluster.remote.connect: false
